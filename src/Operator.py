@@ -4,6 +4,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input, Flatten, Reshape, Conv2D, MaxPool2D
 from tensorflow.keras.callbacks import TensorBoard
 
+from typing import Optional
+
 
 class OperatorNetwork:
     def __init__(self, x_batch_size, mask_batch_size, tensorboard_logs_dir="", add_mopt_perf_metric=True,
@@ -33,7 +35,7 @@ class OperatorNetwork:
         for units in dense_arch[:-1]:
             x = Dense(units, activation="sigmoid")(x)
         x = Dense(dense_arch[-1], activation=last_activation)(x)
-        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x)
+        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x, name="OperatorModelDense")
         print("Object network model built:")
         #self.model.summary()
 
@@ -55,7 +57,7 @@ class OperatorNetwork:
         for units in dense_arch[:-1]:
             x = Dense(units, activation="relu")(x)
         x = Dense(dense_arch[-1], activation=last_activation)(x)
-        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x)
+        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x, name="OperatorModelConv1Ch")
         print("Object network model built:")
         #self.model.summary()
 
@@ -82,9 +84,12 @@ class OperatorNetwork:
         for units in dense_arch[:-1]:
             x = Dense(units, activation="relu")(x)
         x = Dense(dense_arch[-1], activation=last_activation)(x)
-        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x)
+        self.model = Model(inputs=[input_data_layer, input_mask_layer], outputs=x, name="OperatorModelConv2Ch")
         print("Object network model built:")
         #self.model.summary()
+
+    def with_transformer_model(self, transformer_model: tf.keras.Model):
+        self.model = transformer_model
 
     def create_batch(self, x, masks, y):
         """
@@ -146,9 +151,10 @@ class OperatorNetwork:
         losses = np.apply_along_axis(self.mask_loss_combine_function, 0, losses)
         return losses
 
-    def train_one(self, x, masks, y):
+    def train_one(self, x, masks, y, pass_masks_to_network: Optional[bool] = True):
         x_prim, masks_prim, y_prim = self.create_batch(x, masks, y)
-        curr_loss = self.model.train_on_batch(x=[x_prim, masks_prim], y=y_prim)
+        model_input = [x_prim, masks_prim] if pass_masks_to_network else [x_prim]
+        curr_loss = self.model.train_on_batch(x=model_input, y=y_prim)
         self.tr_loss_history.append(curr_loss)
         self.epoch_counter += 1
         if self.tf_logs != "":

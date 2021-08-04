@@ -19,7 +19,14 @@ def generate_data(n=100, seed=0):
     X = np.random.randn(n, 10)
     y = np.zeros(n)
     splits = np.linspace(0, n, num=8 + 1, dtype=int)
-    signals = [[1, 1, 1], [-1, -1, -1], [1, 1, -1], [-1, -1, 1], [1, -1, -1], [-1, 1, 1], [-1, 1, -1], [1, -1, 1]]
+    signals = [[1, 1, 1],
+               [-1, -1, -1],
+               [1, 1, -1],
+               [-1, -1, 1],
+               [1, -1, -1],
+               [-1, 1, 1],
+               [-1, 1, -1],
+               [1, -1, 1]]
     for i in range(8):
         X[splits[i]:splits[i + 1], :3] += np.array([signals[i]])
         y[splits[i]:splits[i + 1]] = i // 2

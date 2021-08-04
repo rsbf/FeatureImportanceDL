@@ -30,7 +30,7 @@ class SelectorNetwork:
         for i in range(len(dense_arch[:-1])):
             x = Dense(dense_arch[i], activation="sigmoid")(x)
         x = Dense(dense_arch[-1], activation="linear")(x)
-        self.model = Model(inputs=[input_mask_layer], outputs=x)
+        self.model = Model(inputs=[input_mask_layer], outputs=x, name="SelectorModelDense")
         print("Subject Network model built:")
         #self.model.summary()
 
