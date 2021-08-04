@@ -2,7 +2,7 @@ import numpy as np
 import os
 import tensorflow.keras as keras
 from tensorflow.keras import backend as K
-from src.FeatureSelector import FeatureSelector
+from src.fir.FeatureSelector import FeatureSelector
 from DataGenerator import generate_data, get_one_hot
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
