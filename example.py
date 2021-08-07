@@ -2,7 +2,7 @@ import numpy as np
 import os
 import tensorflow.keras as keras
 from tensorflow.keras import backend as K
-from src.fir.FeatureSelector import FeatureSelector
+from src.fir.feature_selector import FeatureSelector
 from DataGenerator import generate_data, get_one_hot
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -40,7 +40,7 @@ y_te = get_one_hot(y_te.astype(np.int8), 4)
 y_val = get_one_hot(y_val.astype(np.int8), 4)
 
 # Create the framework, needs number of features and batch_sizes, str_id for tensorboard
-fs = FeatureSelector(FEATURE_SHAPE, s, data_batch_size, mask_batch_size, str_id=dataset_label)
+fs = FeatureSelector(N_FEATURES, s, data_batch_size, mask_batch_size, str_id=dataset_label)
 
 # Create a dense operator net, uses the architecture:
 # N_FEATURES x 2 -> 60 -> 30 -> 20 -> 4

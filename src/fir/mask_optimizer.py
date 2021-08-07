@@ -1,13 +1,15 @@
 import numpy as np
 import tensorflow as tf
 
+from typing import Optional, Tuple
+
 
 class MaskOptimizer:
-    def __init__(self, mask_batch_size, data_shape, unmasked_data_size,perturbation_size,
-                 frac_of_rand_masks=0.5, epoch_condition=1000 ):
-        self.data_shape = data_shape
+    def __init__(self, mask_size, mask_batch_size, unmasked_data_size, perturbation_size,
+                 frac_of_rand_masks=0.5, epoch_condition=1000, mask_shape: Optional[Tuple[int, ...]] = None):
         self.unmasked_data_size = unmasked_data_size
-        self.data_size = np.zeros(data_shape).size
+        self.mask_shape = mask_shape
+        self.data_size = mask_size
         self.mask_history = []
         self.raw_mask_history = []
         self.loss_history = []
@@ -19,6 +21,7 @@ class MaskOptimizer:
         self.max_optimization_iters = 5
         self.step_count_history = []
 
+    @staticmethod
     def gradient(model, x):
         x_tensor = tf.convert_to_tensor(x, dtype=tf.float32)
         with tf.GradientTape() as t:
@@ -28,12 +31,14 @@ class MaskOptimizer:
             loss = loss_model  # +0.001*loss_mask_size#*loss_mask_size
         return t.gradient(loss, x_tensor).numpy(), loss_model
 
+    @staticmethod
     def new_get_mask_from_grads(grads, unmasked_size, mask_size):
         m_opt = np.zeros(shape=mask_size)
         top_arg_grad = np.argpartition(grads, -unmasked_size)[-unmasked_size:]
         m_opt[top_arg_grad] = 1
         return m_opt
 
+    @staticmethod
     def new_get_m_opt(model, unmasked_size):
         input_img = np.ones(shape=model.layers[0].output_shape[0][1:])[None, :] / 2  # define an initial random image
         grad, loss = MaskOptimizer.gradient(model, input_img)
@@ -41,11 +46,13 @@ class MaskOptimizer:
         m_opt = MaskOptimizer.new_get_mask_from_grads(grad, unmasked_size, model.layers[0].output_shape[0][1:])
         return m_opt
 
+    @staticmethod
     def new_check_for_opposite_grad(m_opt_grad, m_opt_indexes):
         m_opt_grad_cp = np.copy(m_opt_grad[m_opt_indexes])
         m_opt_arg_opposite_grad = np.argwhere(m_opt_grad_cp < 0)
         return m_opt_indexes[m_opt_arg_opposite_grad]
 
+    @staticmethod
     def new_check_loss_for_opposite_indexes(model, m_opt, min_index, max_index, opposite_indexes):
         m_opt_changed = False
         m_opt_loss = model.predict(m_opt[None, :])
@@ -59,6 +66,7 @@ class MaskOptimizer:
                 return True, m_new_opt
         return False, m_opt
 
+    @staticmethod
     def new_check_for_likely_change(model, m_opt, min_index, max_index, m_opt_grad):
         m_opt_changed = False
         m_opt_loss = np.squeeze(model.predict(m_opt[None, :]))
@@ -77,13 +85,13 @@ class MaskOptimizer:
         else:
             return False, m_opt
 
-    def get_opt_mask(self, unmasked_size, model, steps=None):
+    def get_opt_mask(self, unmasked_size: int, model: tf.keras.Model, steps: Optional[int]=None):
         m_opt = MaskOptimizer.new_get_m_opt(model, unmasked_size)
         repeat_optimization = True
         step_count = 0
         if steps is None:
             steps = self.max_optimization_iters
-        while (repeat_optimization == True and step_count < steps):
+        while repeat_optimization and (step_count < steps):
             # print(step_count)
             # print(np.squeeze(np.argwhere(m_opt==1)))
             step_count += 1
@@ -119,25 +127,32 @@ class MaskOptimizer:
         self.step_count_history.append(step_count - 1)
         return m_opt
 
-    def check_condiditon(self):
+    def check_condition(self):
         if (self.epoch_counter >= self.epoch_condition):
             return True
         else:
             return False
 
-    def get_random_masks(self):
+    def get_random_masks(self) -> np.ndarray:
         masks_zero = np.zeros(shape=(self.mask_batch_size, self.data_size - self.unmasked_data_size))
         masks_one = np.ones(shape=(self.mask_batch_size, self.unmasked_data_size))
         masks = np.concatenate([masks_zero, masks_one], axis=1)
         masks_permuted = np.apply_along_axis(np.random.permutation, 1, masks)
-        return masks_permuted
 
+        if self.mask_shape is not None:
+            new_shape = (self.mask_batch_size, *self.mask_shape)
+            return np.reshape(masks_permuted, new_shape)
+        else:
+            return masks_permuted
+
+    @staticmethod
     def get_perturbed_masks(mask, n_masks, n_times=1):
         masks = np.tile(mask, (n_masks, 1))
         for i in range(n_times):
             masks = MaskOptimizer.perturb_masks(masks)
         return masks
 
+    @staticmethod
     def perturb_masks(masks):
         def perturb_one_mask(mask):
             where_0 = np.nonzero(mask - 1)[0]
@@ -159,7 +174,7 @@ class MaskOptimizer:
             self.mask_opt = self.get_opt_mask(self.unmasked_data_size, model)
             # print("Opt: "+str(np.squeeze(np.argwhere(self.mask_opt==1))))
             # print("Perf: "+str(np.squeeze(np.argwhere(best_performing_mask==1))))
-        if (self.check_condiditon() is True):
+        if (self.check_condition() is True):
             index = int(self.frac_of_rand_masks * self.mask_batch_size)
 
             random_masks[index] = self.mask_opt
@@ -179,3 +194,4 @@ class MaskOptimizer:
         w[index] = 5
         w[index + 1] = 10
         return np.tile(w, tiling)
+

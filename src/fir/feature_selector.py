@@ -4,9 +4,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from .MaskOptimizer import MaskOptimizer
-from .Operator import OperatorNetwork
-from .Selector import SelectorNetwork
+from .mask_optimizer import MaskOptimizer
+from .operator import OperatorNetwork
+from .selector import SelectorNetwork
 
 logs_base_dir = "./logs"
 os.makedirs(logs_base_dir, exist_ok=True)
@@ -35,10 +35,9 @@ def progressbar(it, prefix="", size=60):
 
 
 class FeatureSelector():
-    def __init__(self, data_shape, unmasked_data_size, data_batch_size, mask_batch_size, str_id="",
+    def __init__(self, data_size: int, unmasked_data_size, data_batch_size, mask_batch_size, str_id="",
                  epoch_on_which_selector_trained=8):
-        self.data_shape = data_shape
-        self.data_size = np.zeros(data_shape).size
+        self.data_size = data_size
         self.unmasked_data_size = unmasked_data_size
         self.logdir = os.path.join(logs_base_dir, datetime.datetime.now().strftime("%m%d-%H%M%S"))
         self.data_batch_size = data_batch_size
@@ -106,7 +105,7 @@ class FeatureSelector():
             y_val = val_data[1]
 
         for i in progressbar(range(number_of_batches), "Training batch: ", 50):
-            mopt_condition = self.mopt.check_condiditon()
+            mopt_condition = self.mopt.check_condition()
 
             random_indices = np.random.randint(0, len(x_tr), self.data_batch_size)
             x = x_tr[random_indices, :]
