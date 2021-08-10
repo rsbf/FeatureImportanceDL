@@ -133,14 +133,14 @@ class MaskOptimizer:
         else:
             return False
 
-    def get_random_masks(self) -> np.ndarray:
+    def get_random_masks(self, mask_shape: Optional[Tuple[int, ...]] = None) -> np.ndarray:
         masks_zero = np.zeros(shape=(self.mask_batch_size, self.data_size - self.unmasked_data_size))
         masks_one = np.ones(shape=(self.mask_batch_size, self.unmasked_data_size))
         masks = np.concatenate([masks_zero, masks_one], axis=1)
         masks_permuted = np.apply_along_axis(np.random.permutation, 1, masks)
 
-        if self.mask_shape is not None:
-            new_shape = (self.mask_batch_size, *self.mask_shape)
+        if mask_shape is not None:
+            new_shape = (self.mask_batch_size, *mask_shape)
             return np.reshape(masks_permuted, new_shape)
         else:
             return masks_permuted
