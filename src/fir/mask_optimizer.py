@@ -20,6 +20,7 @@ class MaskOptimizer:
         self.perturbation_size = perturbation_size
         self.max_optimization_iters = 5
         self.step_count_history = []
+        self.mask_opt = None
 
     @staticmethod
     def gradient(model, x):
@@ -169,12 +170,12 @@ class MaskOptimizer:
 
     def get_new_mask_batch(self, model, best_performing_mask,  gen_new_opt_mask):
         self.epoch_counter += 1
-        random_masks = self.get_random_masks()
         if (gen_new_opt_mask):
             self.mask_opt = self.get_opt_mask(self.unmasked_data_size, model)
             # print("Opt: "+str(np.squeeze(np.argwhere(self.mask_opt==1))))
             # print("Perf: "+str(np.squeeze(np.argwhere(best_performing_mask==1))))
         if (self.check_condition() is True):
+            random_masks = self.get_random_masks()
             index = int(self.frac_of_rand_masks * self.mask_batch_size)
 
             random_masks[index] = self.mask_opt
@@ -182,11 +183,14 @@ class MaskOptimizer:
             random_masks[index + 2:] = MaskOptimizer.get_perturbed_masks(random_masks[index],
                                                                          self.mask_batch_size - (index + 2),
                                                                          self.perturbation_size)
+            return random_masks
+        
+        return None
+
             # print("mask batch_size: "+str(self.mask_batch_size))
             # print("index: "+str(index))
             # print("left: "+str(self.mask_batch_size - (index+1)))
             # [print(np.squeeze(np.argwhere(i==1))) for i in random_masks]
-        return random_masks
 
     def get_mask_weights(self, tiling):
         w = np.ones(shape=self.mask_batch_size)

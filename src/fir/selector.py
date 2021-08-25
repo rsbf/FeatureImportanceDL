@@ -55,7 +55,10 @@ class SelectorNetwork:
 
     def train_one(self, epoch_number, apply_weights):  # train on data in object memory
         if apply_weights == False:
-            curr_loss = self.model.train_on_batch(x=self.data_masks, y=self.data_targets)
+            try:
+                curr_loss = self.model.train_on_batch(x=self.data_masks, y=self.data_targets)
+            except Exception:
+                x = 1
         else:
             curr_loss = self.model.train_on_batch(x=self.data_masks, y=self.data_targets,
                                                   sample_weight=self.sample_weights)
